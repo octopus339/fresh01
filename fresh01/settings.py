@@ -32,7 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = (
     'django.contrib.admin',
-    'django.contrib.auth',
+    'django.contrib.auth', #Django自带的用户认证模块
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -90,6 +90,8 @@ DATABASES = {
         'PORT': '3306',
     }
 }
+# 配置模型类
+AUTH_USER_MODEL = 'users.User'
 
 
 # Internationalization
