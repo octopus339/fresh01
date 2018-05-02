@@ -115,4 +115,5 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+#配置静态目录
 STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
