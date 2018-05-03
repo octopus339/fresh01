@@ -6,12 +6,12 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.views.generic import View
-from itsdangerous import TimedJSONWebSignatureSerializer
+from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
 from pymysql import IntegrityError
 
 from apps.users.models import User
 from fresh01 import settings
-
+from celery_tasks.tasks import send_active_mail
 
 class RegisterView(View):
     """显示注册界面"""
@@ -70,7 +70,10 @@ class RegisterView(View):
         token = token.decode() #字节转为字符串
 
         # 2.给用户发送激活连接
-        self.send_active_mail(username,email,token)
+        #第一种发送邮件方法
+        # self.send_active_mail(username,email,token)
+        #第二种：用异步发送邮件方法
+        send_active_mail.delay(username, email, token)
         #3.把用户的激活状态改为Flase未激活
         user.is_active  = False
         user.save()
@@ -104,13 +107,21 @@ class RegisterView(View):
                   html_message=html_message)  # 使用关键字参数传递html_message
 
 
+class ActiveView(View):
+    def get(self,request,token):
 
+        #将用dumps方法加密的用户id转为字典格式拿到用户id的明文格式
+        try:
+            s=TimedJSONWebSignatureSerializer(settings.SECRET_KEY,3600)
+            dict_token = s.loads(token)
+            user_id = dict_token.get('confirm')
+        except SignatureExpired:
+            return HttpResponse('url连接已过期')
 
+        #得到用户id后在数据库查出用户信息，把激活状态改为true
+        user = User.objects.get(id=user_id)
+        user.is_active = True
+        user.save()
 
-
-
-
-
-
-
+        return HttpResponse('激活成功进入登陆页面')
 
