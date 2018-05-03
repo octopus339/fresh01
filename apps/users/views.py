@@ -1,6 +1,6 @@
 import re
 
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
@@ -181,8 +181,8 @@ class LoginView(View):
             return redirect(next_url)
 
 
-
-
-
-
-
+class LogoutView(View):
+    #注销用户
+    def get(self,request):
+        logout(request) #Django自带清除session方法
+        return redirect(reverse('goods:index'))
