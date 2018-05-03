@@ -1,8 +1,10 @@
 import re
 
+from django.contrib.auth import login, authenticate
 from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 # Create your views here.
 from django.views.generic import View
@@ -123,5 +125,64 @@ class ActiveView(View):
         user.is_active = True
         user.save()
 
-        return HttpResponse('激活成功进入登陆页面')
+        return redirect(reverse('users:login'))
+
+
+class LoginView(View):
+
+    def get(self,request):
+        """显示登陆页面"""
+        return render(request,'login.html')
+    def post(self,request):
+        """处理登录逻辑
+        1.获取登录请求参数
+        2.校验参数合法性
+        3.使用django提供的认证方法，调用django提供的方法,判断用户名和密码是否正确
+        4.判断用户名是否有激活
+        5.调用django的login方法, 记录登录状态(session)
+        6.设置session有效期
+
+        """
+        #1.获取登录请求参数
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        remember = request.POST.get('remember')
+
+        #2.校验参数合法性
+        if not all([username,password]):
+            return render(request,'login.html',{'errmsg':'请输入参数'})
+
+        #3.使用django提供的认证方法，调用django提供的方法,判断用户名和密码是否正确
+        user = authenticate(username=username,password=password)
+        if user is None:
+            return render(request,'login.html',{'errmsg':'请输入正确的用户名和密码'})
+
+        #4.判断用户名是否有激活
+        if not user.is_active:
+            return render(request, 'login.html', {'errmsg': '账号未激活'})
+
+        #5.调用django的login方法, 记录登录状态(session)
+        login(request,user)
+
+        #6.设置session有效期
+        if remember == 'on':# 勾选保存用户登录状态
+            request.session.set_expiry(None)  # 保存登录状态两周
+        else:
+            request.session.set_expiry(0)  # 关闭浏览器后,清除登录状态
+
+
+        # 获取next跳转参数
+        next_url = request.GET.get('next', None)
+        if next_url is None: # 默认情况,进入首页
+            # 响应请求. 进入首页
+            return redirect(reverse('goods:index'))
+        else:
+            # return redirect(reverse(next_url)) # error
+            return redirect(next_url)
+
+
+
+
+
+
 
